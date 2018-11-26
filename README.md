@@ -1,6 +1,7 @@
 # eastwind
     eastwind是一个有趣的soa框架，基于netty、etcd、kryo实现，包含二进制/HTTP RPC、EventBus、多种负载均衡、重定向功能。
     分布式Map、流控/灰度发布、自定义路由等高级功能尚在规划中。
+    以下所有代码都在test package下。
 
 ### 1. Getting Started
 #### 1.1 启动服务
@@ -8,8 +9,8 @@
   
     @Feign(group = "changjiang")
     public interface HelloFeign {
-      String hello();
-      String hello(String group);
+    	String hello();
+	String hello(String group);
     }
     
   启动服务：
@@ -54,7 +55,7 @@
   
     @Override
     public String hello(String group) {
-      return "hello, " + group + "!";
+    	return "hello, " + group + "!";
     }
 
     @Override
@@ -85,14 +86,15 @@
   构建：
   
     public static EastWindApplication newApplicationOn(int port, String name) {
-      EastWindApplicationBuilder builder = EastWindApplicationBuilder.newBuilder("test-eventbus");
-      builder.onPort(port).withProperty("name", name);
-      builder.onEvents(new EventBusConfig<>("hello", (t, a, b) -> {
-        System.out.println(b.getProperty("name") + "-->" + a.getProperty("name") + ": " + t);
-      }));
-      // 设置集群所有server地址
-      builder.withFixedServers(":11111,:12222,:13333,:14444");
-      return builder.build();
+    	EastWindApplicationBuilder builder = EastWindApplicationBuilder.newBuilder("test-eventbus");
+    	builder.onPort(port).withProperty("name", name);
+    	builder.onEvents(new EventBusConfig<>("hello", (t, a, b) -> {
+		System.out.println(b.getProperty("name") + "-->" + a.getProperty("name") + ": " + t);
+		})
+	);
+    	// 设置集群所有server地址
+    	builder.withFixedServers(":11111,:12222,:13333,:14444");
+    	return builder.build();
     }
 
   启动4个Server，端口分别为11111、12222、13333、14444,设置自定义属性name，分别为Mercury、Venus、Earth、Mars:
@@ -123,36 +125,36 @@
   
     InvocationContext<String> context = InvocationContext.getContext();
     // 设为异步方式
-	context.async();
+    context.async();
     // 由另外的线程处理
-	ForkJoinPool.commonPool().execute(()->{
-	  try {
+    ForkJoinPool.commonPool().execute(()->{
+        try {
 	    TimeUnit.SECONDS.sleep(1);
-	  } catch (InterruptedException e) {
-      }
-	  StringBuilder result = new StringBuilder();
-	  result.append(food).append(" with");
-      // 获取额外属性
-	  for (Entry<Object, Object> en : context.getInvocationPropertys().entrySet()) {
-	    result.append(" ").append(en.getKey());
-	    result.append("-").append(en.getValue());
-	  }
-      context.complete(result.toString());
-	});
-	return null;
+	} catch (InterruptedException e) {
+    }
+    StringBuilder result = new StringBuilder();
+    result.append(food).append(" with");
+    // 获取额外属性
+    for (Entry<Object, Object> en : context.getInvocationPropertys().entrySet()) {
+    	result.append(" ").append(en.getKey());
+	result.append("-").append(en.getValue());
+    }
+    context.complete(result.toString());
+    });
+    return null;
     
 
 #### 3.2 客户端异步
 
     // 创建 RmiTemplate
     RmiTemplate rmiTemplate = application.createRmiTemplate("food");
-	Map<Object, Object> propertys = new HashMap<Object, Object>();
-	propertys.put("eggs", 2);
+    Map<Object, Object> propertys = new HashMap<Object, Object>();
+    propertys.put("eggs", 2);
     // 在rpc时，传入额外的propertys
-	CompletableFuture<String> cf = rmiTemplate.execute("/cook", propertys, "egg-fried-rice");
-	cf.thenAccept(s -> {
-      System.out.println("your " + s + " is done!");
-	});
+    CompletableFuture<String> cf = rmiTemplate.execute("/cook", propertys, "egg-fried-rice");
+    cf.thenAccept(s -> {
+    	System.out.println("your " + s + " is done!");
+    });
     
   输出：
   
@@ -186,4 +188,64 @@
     builder.withHashPropertyBuilders(hashPropertyBuilder);
     
   客户端：略
+  
+### 5. 重定向
+
+    接口调用是幂等的，但是服务是有状态的。一致性hash能优化低一致性要求的分布式调用场景。
+    某些情形下，对一致性要求较高，比如秒杀，严格要求对同一商品的请求，路由到同一服务器。
+    这时，需要引入路由表，若有请求落到意外的进程，重定向至目标进程。
+    
+  API：
+
+    InvocationContext<Boolean> context = InvocationContext.getContext();
+    context.redirectTo(redirectTo);
+    
+### 5.1 例子：踢皮球
+
+    发球员向球员踢铅球，球员不太想接球，将球踢给别的球员；尝试若干次，直到接球或抛异常。
+    
+  Feign:
+    
+    Boolean kick(Object ball);
+    
+  服务端实现：
+    
+    @Override
+    public Boolean kick(Object ball) {
+    	try {
+	    TimeUnit.SECONDS.sleep(1);
+	} catch (InterruptedException e) {
+	}
+	if (new Random().nextInt(20) == 0) {
+	    return true;
+	}
+	InvocationContext<Boolean> context = InvocationContext.getContext();
+	int times = context.redirectTimes();
+	if (times >= 10) {
+	    throw new RuntimeException("Reach TTL!");
+	}
+	// 随机重定向
+	List<Application> others = context.getMasterApplication().getOthers(true);
+	Application redirectTo = others.get(new Random().nextInt(others.size()));
+	return context.redirectTo(redirectTo);
+    }
+  
+  客户端：
+    
+    KickFeign kickFeign = client.createFeignClient(KickFeign.class);
+    Object ball = new Object();
+    if (kickFeign.kick(ball)) {
+    	System.out.println("serve succeeded!");
+    }
+  
+  客户端输出：
+  
+    Exception in thread "main" java.lang.RuntimeException: Reach TTL!
+	at eastwind.rmi.FeignInvocationHandler.invoke(FeignInvocationHandler.java:34)
+	at com.sun.proxy.$Proxy5.kick(Unknown Source)
+	at eastwind.rmi.redirect.Client.main(Client.java:14)
+	
+  或：
+    
+    serve succeeded!
     
