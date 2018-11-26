@@ -160,6 +160,30 @@
     
 ### 4.另一种负载均衡
 
-    负载均衡方式有多种，有些场景下，假如根据业务id路由，在JVM内存里解决一些问题，然后定时批量地刷入数据库，将多次随机写转化为一次顺序写(LSM)，能极大地降低数据库压力。
+    负载均衡方式有多种，有些场景下，假如根据业务id路由，在JVM内存里解决一些问题，然后定时批量地刷入数据库(LSM)，能极大地降低数据库压力。
     
+  ShoppingTrolley：
+    
+    private int uid;
+    private List<String> products;
+    
+  ShoppingTrolleyFeign：
+    
+    @LoadBalanced.CONSISTENT_HASH  // 用一致性hash负载均衡
+    ShoppingTrolley find(@Hashable int uid);
+	
+    @LoadBalanced.CONSISTENT_HASH
+    void create(@Hashable ShoppingTrolley shoppingTrolley);
+    
+  @Hashable：
+  
+    表示以该参数为一致性hash算法入参。服务端，简单类型可直接加注解，复杂类型需配置HashPropertyBuilder。对客户端透明。
+    
+  HashPropertyBuilder:
+  
+    HashPropertyBuilder<ShoppingTrolley> hashPropertyBuilder = new HashPropertyBuilder<>(ShoppingTrolley.class);
+    hashPropertyBuilder.getTarget().getUid();
+    builder.withHashPropertyBuilders(hashPropertyBuilder);
+    
+  客户端：略
     
