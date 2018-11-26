@@ -87,9 +87,9 @@
   
     public static EastWindApplication newApplicationOn(int port, String name) {
         EastWindApplicationBuilder builder = EastWindApplicationBuilder.newBuilder("test-eventbus");
-	builder.onPort(port).withProperty("name", name);
-	builder.onEvents(new EventBusConfig<>("hello", (t, a, b) -> {
-		System.out.println(b.getProperty("name") + "-->" + a.getProperty("name") + ": " + t);
+        builder.onPort(port).withProperty("name", name);
+        builder.onEvents(new EventBusConfig<>("hello", (t, a, b) -> {
+	        System.out.println(b.getProperty("name") + "-->" + a.getProperty("name") + ": " + t);
 		})
 	);
 	// 设置集群所有server地址
@@ -137,7 +137,7 @@
     // 获取额外属性
     for (Entry<Object, Object> en : context.getInvocationPropertys().entrySet()) {
         result.append(" ").append(en.getKey());
-	result.append("-").append(en.getValue());
+        result.append("-").append(en.getValue());
     }
     context.complete(result.toString());
     });
