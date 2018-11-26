@@ -77,7 +77,7 @@
   
   说明：
     
-    EastWind不依赖现成的HTTP服务器，根据输入格式识别协议，单端口支持二进制和HTTP。
+    EastWind不依赖现成的HTTP服务器，内部由netty实现，根据输入格式识别协议，单端口支持二进制和HTTP。
     
 ### 2. EventBus
 
@@ -128,18 +128,18 @@
     context.async();
     // 由另外的线程处理
     ForkJoinPool.commonPool().execute(()->{
-    try {
-        TimeUnit.SECONDS.sleep(1);
-    } catch (InterruptedException e) {
-    }
-    StringBuilder result = new StringBuilder();
-    result.append(food).append(" with");
-    // 获取额外属性
-    for (Entry<Object, Object> en : context.getInvocationPropertys().entrySet()) {
-        result.append(" ").append(en.getKey());
-        result.append("-").append(en.getValue());
-    }
-    context.complete(result.toString());
+        try {
+            TimeUnit.SECONDS.sleep(1);
+        } catch (InterruptedException e) {
+        }
+        StringBuilder result = new StringBuilder();
+        result.append(food).append(" with");
+        // 获取额外属性
+        for (Entry<Object, Object> en : context.getInvocationPropertys().entrySet()) {
+            result.append(" ").append(en.getKey());
+            result.append("-").append(en.getValue());
+        }
+        context.complete(result.toString());
     });
     return null;
     
