@@ -9,7 +9,7 @@
     * 调用服务
     * 握手
     * HTTP调用
-* [EventBus](#EventBus)    
+* [EventBus](#2. EventBus)    
 
 ### 1. Getting Started
 #### 1.1 启动服务
