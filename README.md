@@ -92,7 +92,7 @@
 		System.out.println(b.getProperty("name") + "-->" + a.getProperty("name") + ": " + t);
 		})
 	);
-    	// 设置集群所有server地址
+	// 设置集群所有server地址
 	builder.withFixedServers(":11111,:12222,:13333,:14444");
 	return builder.build();
     }
@@ -128,15 +128,15 @@
     context.async();
     // 由另外的线程处理
     ForkJoinPool.commonPool().execute(()->{
-        try {
-	    TimeUnit.SECONDS.sleep(1);
-	} catch (InterruptedException e) {
+    try {
+        TimeUnit.SECONDS.sleep(1);
+    } catch (InterruptedException e) {
     }
     StringBuilder result = new StringBuilder();
     result.append(food).append(" with");
     // 获取额外属性
     for (Entry<Object, Object> en : context.getInvocationPropertys().entrySet()) {
-    	result.append(" ").append(en.getKey());
+        result.append(" ").append(en.getKey());
 	result.append("-").append(en.getValue());
     }
     context.complete(result.toString());
