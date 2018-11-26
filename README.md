@@ -59,6 +59,7 @@
 
     @Override
     public String hello() {
+      // 从InvocationContext中获得RemoteApplication的group
       InvocationContext<String> context = InvocationContext.getContext();
       String group = context.getRemoteApplication().getGroup();
       return "hello, " + group + "!";
@@ -89,6 +90,7 @@
       builder.onEvents(new EventBusConfig<>("hello", (t, a, b) -> {
         System.out.println(b.getProperty("name") + "-->" + a.getProperty("name") + ": " + t);
       }));
+      // 设置集群所有server地址
       builder.withFixedServers(":11111,:12222,:13333,:14444");
       return builder.build();
     }
@@ -99,8 +101,8 @@
     newApplicationOn(12222, "Venus");
     EastWindApplication app = newApplicationOn(13333, "Earth");
     newApplicationOn(14444, "Mars");
-    app.waitForOthers().get();  // 等待与集群握手完毕
-    app.eventBus("hello").publish("hello, brothers!");
+    app.waitForOthers().get();  // 等待与集群所有server握手完毕
+    app.eventBus("hello").publish("hello, brothers!");  // 向集群发送消息
     app.waitForShutdown().get();
     
   输出：
@@ -108,3 +110,56 @@
     Earth-->Mars: hello, brothers!
     Earth-->Venus: hello, brothers!
     Earth-->Mercury: hello, brothers!
+
+### 3.异步
+
+  接口：
+    
+    String cook(String food);
+    
+#### 3.1 服务端异步
+  
+  接口实现代码：
+  
+    InvocationContext<String> context = InvocationContext.getContext();
+    // 设为异步方式
+	context.async();
+    // 由另外的线程处理
+	ForkJoinPool.commonPool().execute(()->{
+	  try {
+	    TimeUnit.SECONDS.sleep(1);
+	  } catch (InterruptedException e) {
+      }
+	  StringBuilder result = new StringBuilder();
+	  result.append(food).append(" with");
+      // 获取额外属性
+	  for (Entry<Object, Object> en : context.getInvocationPropertys().entrySet()) {
+	    result.append(" ").append(en.getKey());
+	    result.append("-").append(en.getValue());
+	  }
+      context.complete(result.toString());
+	});
+	return null;
+    
+
+#### 3.2 客户端异步
+
+    // 创建 RmiTemplate
+    RmiTemplate rmiTemplate = application.createRmiTemplate("food");
+	Map<Object, Object> propertys = new HashMap<Object, Object>();
+	propertys.put("eggs", 2);
+    // 在rpc时，传入额外的propertys
+	CompletableFuture<String> cf = rmiTemplate.execute("/cook", propertys, "egg-fried-rice");
+	cf.thenAccept(s -> {
+      System.out.println("your " + s + " is done!");
+	});
+    
+  输出：
+  
+    your egg-fried-rice with eggs-2 is done!
+    
+### 4.另一种负载均衡
+
+    负载均衡方式有多种，有些场景下，假如根据业务id路由，在JVM内存里解决一些问题，然后定时批量地刷入数据库，将多次随机写转化为一次顺序写(LSM)，能极大地降低数据库压力。
+    
+    
