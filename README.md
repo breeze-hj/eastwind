@@ -4,15 +4,15 @@
     以下所有代码都在test package下。
 
 ## 目录
-* [Getting Started](#Getting Started)
+* [Getting-Started](#1-Getting-Started)
     * 启动服务
     * 调用服务
     * 握手
     * HTTP调用
 * [EventBus](#2 EventBus)    
 
-### 1. Getting Started
-#### 1.1 启动服务
+### 1-Getting-Started
+#### 1-1启动服务
   声明接口：
   
     @Feign(group = "changjiang")
