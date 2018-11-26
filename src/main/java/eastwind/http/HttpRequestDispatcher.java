@@ -41,7 +41,7 @@ public class HttpRequestDispatcher {
 			path = "/_info";
 		}
 		List<RMD> rmds = rmdRegistry.get(path);
-		if (rmds.size() != 1) {
+		if (rmds.size() == 0) {
 			FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND);
 			response.headers().set(HttpHeaderNames.CONTENT_LENGTH, 0);
 			return response;
@@ -63,7 +63,12 @@ public class HttpRequestDispatcher {
 				}
 				String v = params.get(k).get(0);
 				Class<?> type = paramTypes[i];
-				Object arg = objectMapper.readValue(v, type);
+				Object arg = null;
+				if (type.equals(String.class)) {
+					arg = v;
+				} else {
+					arg = objectMapper.readValue(v, type);
+				}
 				args[i] = arg;
 			}
 			Object result = null;
