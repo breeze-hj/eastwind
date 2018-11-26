@@ -2,7 +2,7 @@
     eastwind是一个有趣的soa框架，基于netty、etcd、kryo实现，包含二进制/HTTP RPC、EventBus、多种负载均衡、重定向功能。
     分布式Map、流控/灰度发布、自定义路由等高级功能尚在规划中。
 
-### 1.Getting Started
+### 1. Getting Started
 #### 1.1 启动服务
   声明接口：
   
@@ -78,7 +78,7 @@
     
     EastWind不依赖现成的HTTP服务器，根据输入格式识别协议，单端口支持二进制和HTTP。
     
-### 2.EventBus
+### 2. EventBus
 
     EventBus用于向集群内所有成员广播消息。
     
@@ -111,7 +111,7 @@
     Earth-->Venus: hello, brothers!
     Earth-->Mercury: hello, brothers!
 
-### 3.异步
+### 3. 异步
 
   接口：
     
@@ -158,7 +158,7 @@
   
     your egg-fried-rice with eggs-2 is done!
     
-### 4.另一种负载均衡
+### 4. 另一种负载均衡
 
     负载均衡方式有多种，有些场景下，假如根据业务id路由，在JVM内存里解决一些问题，然后定时批量地刷入数据库(LSM)，能极大地降低数据库压力。
     
