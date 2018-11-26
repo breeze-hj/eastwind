@@ -9,8 +9,8 @@
   
     @Feign(group = "changjiang")
     public interface HelloFeign {
-    	String hello();
-	String hello(String group);
+        String hello();
+        String hello(String group);
     }
     
   启动服务：
@@ -55,7 +55,7 @@
   
     @Override
     public String hello(String group) {
-    	return "hello, " + group + "!";
+        return "hello, " + group + "!";
     }
 
     @Override
