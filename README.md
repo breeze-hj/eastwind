@@ -9,7 +9,7 @@
     * 调用服务
     * 握手
     * HTTP调用
-* [EventBus](#EventBus)    
+* [EventBus](#2.EventBus)    
 
 ### 1. Getting Started
 #### 1.1 启动服务
@@ -87,7 +87,7 @@
     
     EastWind不依赖现成的HTTP服务器，内部由netty实现，根据输入格式识别协议，单端口支持二进制和HTTP。
     
-### EventBus
+### 2.EventBus
 
     EventBus用于向集群内所有成员广播消息。
     
