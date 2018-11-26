@@ -60,10 +60,10 @@
 
     @Override
     public String hello() {
-      // 从InvocationContext中获得RemoteApplication的group
-      InvocationContext<String> context = InvocationContext.getContext();
-      String group = context.getRemoteApplication().getGroup();
-      return "hello, " + group + "!";
+        // 从InvocationContext中获得RemoteApplication的group
+        InvocationContext<String> context = InvocationContext.getContext();
+        String group = context.getRemoteApplication().getGroup();
+        return "hello, " + group + "!";
     }
     
 #### 1.4 HTTP调用
@@ -212,22 +212,22 @@
     
     @Override
     public Boolean kick(Object ball) {
-    	try {
+        try {
 	    TimeUnit.SECONDS.sleep(1);
-	} catch (InterruptedException e) {
-	}
-	if (new Random().nextInt(20) == 0) {
-	    return true;
-	}
-	InvocationContext<Boolean> context = InvocationContext.getContext();
-	int times = context.redirectTimes();
-	if (times >= 10) {
-	    throw new RuntimeException("Reach TTL!");
-	}
-	// 随机重定向
-	List<Application> others = context.getMasterApplication().getOthers(true);
-	Application redirectTo = others.get(new Random().nextInt(others.size()));
-	return context.redirectTo(redirectTo);
+        } catch (InterruptedException e) {
+        }
+        if (new Random().nextInt(20) == 0) {
+            return true;
+        }
+        InvocationContext<Boolean> context = InvocationContext.getContext();
+        int times = context.redirectTimes();
+        if (times >= 10) {
+            throw new RuntimeException("Reach TTL!");
+        }
+        // 随机重定向
+        List<Application> others = context.getMasterApplication().getOthers(true);
+        Application redirectTo = others.get(new Random().nextInt(others.size()));
+        return context.redirectTo(redirectTo);
     }
   
   客户端：
