@@ -9,7 +9,7 @@
 * [异步](#3-异步)
 * [另一种负载均衡](#4-另一种负载均衡)
 * [重定向](#5-重定向)
- * [例子：踢皮球](#5-1例子：踢皮球)
+  * [例子：踢皮球](#5-1例子-踢皮球)
 
 ### 1-Getting-Started
 #### 1-1启动服务
@@ -208,7 +208,7 @@
     InvocationContext<Boolean> context = InvocationContext.getContext();
     context.redirectTo(redirectTo);
     
-### 5-1例子：踢皮球
+### 5-1例子-踢皮球
 
     发球员向球员踢铅球，球员不太想接球，将球踢给别的球员；尝试若干次，直到接球或抛异常。
     
