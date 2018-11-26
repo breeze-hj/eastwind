@@ -86,15 +86,15 @@
   构建：
   
     public static EastWindApplication newApplicationOn(int port, String name) {
-    	EastWindApplicationBuilder builder = EastWindApplicationBuilder.newBuilder("test-eventbus");
-    	builder.onPort(port).withProperty("name", name);
-    	builder.onEvents(new EventBusConfig<>("hello", (t, a, b) -> {
+        EastWindApplicationBuilder builder = EastWindApplicationBuilder.newBuilder("test-eventbus");
+	builder.onPort(port).withProperty("name", name);
+	builder.onEvents(new EventBusConfig<>("hello", (t, a, b) -> {
 		System.out.println(b.getProperty("name") + "-->" + a.getProperty("name") + ": " + t);
 		})
 	);
     	// 设置集群所有server地址
-    	builder.withFixedServers(":11111,:12222,:13333,:14444");
-    	return builder.build();
+	builder.withFixedServers(":11111,:12222,:13333,:14444");
+	return builder.build();
     }
 
   启动4个Server，端口分别为11111、12222、13333、14444,设置自定义属性name，分别为Mercury、Venus、Earth、Mars:
