@@ -235,7 +235,7 @@
     KickFeign kickFeign = client.createFeignClient(KickFeign.class);
     Object ball = new Object();
     if (kickFeign.kick(ball)) {
-    	System.out.println("serve succeeded!");
+        System.out.println("serve succeeded!");
     }
   
   客户端输出：
