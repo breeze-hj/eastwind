@@ -5,11 +5,11 @@
 
 ## 目录
 * [Getting-Started](#1-Getting-Started)
-    * 启动服务
-    * 调用服务
-    * 握手
-    * HTTP调用
-* [EventBus](#2 EventBus)    
+* [EventBus](#2-EventBus)
+* [异步](#3-异步)
+* [另一种负载均衡](#4-另一种负载均衡)
+* [重定向](#5-重定向)
+ * [例子：踢皮球](#5-1例子：踢皮球)
 
 ### 1-Getting-Started
 #### 1-1启动服务
@@ -42,7 +42,7 @@
       }]
     }
 
-#### 1.2 调用服务
+#### 1-2调用服务
   启动客户端：
   
     EastWindApplicationBuilder builder = EastWindApplicationBuilder.newBuilder("huanghe");
@@ -58,7 +58,7 @@
     changjiang return:hello, huanghe!
     changjiang return:hello, huanghe!
     
-#### 1.3 握手
+#### 1-3握手
   客户端/服务端握手时，双方会交互基本信息，上文的 helloFeign.hello 有两种实现：
   
     @Override
@@ -74,7 +74,7 @@
         return "hello, " + group + "!";
     }
     
-#### 1.4 HTTP调用
+#### 1-4HTTP调用
   HTTP调用方式可以用于本机调试，需开启Java8 -parameters javac选项。
   
     http://127.0.0.1:18729/hello?group=huanghe
@@ -87,7 +87,7 @@
     
     EastWind不依赖现成的HTTP服务器，内部由netty实现，根据输入格式识别协议，单端口支持二进制和HTTP。
     
-### 2 EventBus
+### 2-EventBus
 
     EventBus用于向集群内所有成员广播消息。
     
@@ -121,13 +121,13 @@
     Earth-->Venus: hello, brothers!
     Earth-->Mercury: hello, brothers!
 
-### 3. 异步
+### 3-异步
 
   接口：
     
     String cook(String food);
     
-#### 3.1 服务端异步
+#### 3-1服务端异步
   
   接口实现代码：
   
@@ -152,7 +152,7 @@
     return null;
     
 
-#### 3.2 客户端异步
+#### 3-2客户端异步
 
     // 创建 RmiTemplate
     RmiTemplate rmiTemplate = application.createRmiTemplate("food");
@@ -168,7 +168,7 @@
   
     your egg-fried-rice with eggs-2 is done!
     
-### 4. 另一种负载均衡
+### 4-另一种负载均衡
 
     负载均衡方式有多种，有些场景下，假如根据业务id路由，在JVM内存里解决一些问题，然后定时批量地刷入数据库(LSM)，能极大地降低数据库压力。
     
@@ -197,7 +197,7 @@
     
   客户端：略
   
-### 5. 重定向
+### 5-重定向
 
     接口调用是幂等的，但是服务是有状态的。一致性hash能优化低一致性要求的分布式调用场景。
     某些情形下，对一致性要求较高，比如秒杀，严格要求对同一商品的请求，路由到同一服务器。
@@ -208,7 +208,7 @@
     InvocationContext<Boolean> context = InvocationContext.getContext();
     context.redirectTo(redirectTo);
     
-### 5.1 例子：踢皮球
+### 5-1例子：踢皮球
 
     发球员向球员踢铅球，球员不太想接球，将球踢给别的球员；尝试若干次，直到接球或抛异常。
     
