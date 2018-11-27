@@ -97,8 +97,8 @@
     public static EastWindApplication newApplicationOn(int port, String name) {
         EastWindApplicationBuilder builder = EastWindApplicationBuilder.newBuilder("test-eventbus");
         builder.onPort(port).withProperty("name", name);
-        builder.onEvents(new EventBusConfig<>("hello", (t, a, b) -> {
-	        System.out.println(b.getProperty("name") + "-->" + a.getProperty("name") + ": " + t);
+        builder.onEvents(new EventBusConfig<>("hello", (msg, local, remote) -> {
+	        System.out.println(remote.getProperty("name") + "-->" + local.getProperty("name") + ": " + msg);
 		})
         );
         // 设置集群所有server地址
