@@ -198,12 +198,13 @@
     builder.withHashPropertyBuilders(hashPropertyBuilder);
     
   客户端：略
+  输出效果：同一ud的find/create RPC由同一server处理。
   
 ### 5-重定向
 
     接口调用是幂等的，但是服务是有状态的。一致性hash能优化低一致性要求的分布式调用场景。
     某些情形下，对一致性要求较高，比如秒杀，严格要求对同一商品的请求，路由到同一服务器。
-    这时，需要引入路由表，若有请求落到意外的进程，重定向至目标进程。
+    这时，需要引入路由表，若有请求落到意外的server，重定向至目标server。
     
   API：
 
@@ -236,7 +237,7 @@
         if (times >= 10) {
             throw new RuntimeException("Reach TTL!");
         }
-        // 随机重定向
+        // 随机重定向至其他可用server
         List<Application> others = context.getMasterApplication().getOthers(true);
         Application redirectTo = others.get(new Random().nextInt(others.size()));
         return context.redirectTo(redirectTo);
