@@ -183,7 +183,7 @@
     @LoadBalanced.CONSISTENT_HASH  // 用一致性hash负载均衡
     ShoppingTrolley find(@Hashable int uid);
 	
-    @LoadBalanced.CONSISTENT_HASH
+    @LoadBalanced.CONSISTENT_HASH  // 用一致性hash负载均衡
     void create(@Hashable ShoppingTrolley shoppingTrolley);
     
   @Hashable：
@@ -193,6 +193,7 @@
   HashPropertyBuilder:
   
     HashPropertyBuilder<ShoppingTrolley> hashPropertyBuilder = new HashPropertyBuilder<>(ShoppingTrolley.class);
+    // 表示由该属性计算hash值
     hashPropertyBuilder.getTarget().getUid();
     builder.withHashPropertyBuilders(hashPropertyBuilder);
     
