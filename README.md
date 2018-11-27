@@ -42,27 +42,12 @@
       }]
     }
 
-#### 1-2调用服务
-  启动客户端：
+#### 1-2握手
   
-    EastWindApplicationBuilder builder = EastWindApplicationBuilder.newBuilder("huanghe");
-    EastWindApplication huanghe = builder.onPort(18829).withFixedServers("changjiang", ":18729").build();
-    HelloFeign helloFeign = huanghe.createFeignClient(HelloFeign.class);
-    // 在入参中传递己方group  
-    System.out.println("changjiang return:" + helloFeign.hello("huanghe"));
-    // 不显示传递group
-    System.out.println("changjiang return:" + helloFeign.hello());
-    
-  输出：
-    
-    changjiang return:hello, huanghe!
-    changjiang return:hello, huanghe!
-    
-#### 1-3握手
-  客户端/服务端握手时，双方会交互基本信息，上文的 helloFeign.hello 有两种实现：
+  客户端/服务端握手时，双方会交互基本信息，上文的 helloFeign.hello， 服务端有两种实现：
   
     @Override
-    public String hello(String group) {
+    public String hello(String group) { // 显式传递客户端名称
         return "hello, " + group + "!";
     }
 
@@ -74,6 +59,22 @@
         return "hello, " + group + "!";
     }
     
+#### 1-3调用服务
+  启动客户端：
+  
+    EastWindApplicationBuilder builder = EastWindApplicationBuilder.newBuilder("huanghe");
+    EastWindApplication huanghe = builder.onPort(18829).withFixedServers("changjiang", ":18729").build();
+    HelloFeign helloFeign = huanghe.createFeignClient(HelloFeign.class);
+    // 在入参中传递己方group  
+    System.out.println("changjiang return:" + helloFeign.hello("huanghe"));
+    // 不显式传递group
+    System.out.println("changjiang return:" + helloFeign.hello());
+    
+  输出：
+    
+    changjiang return:hello, huanghe!
+    changjiang return:hello, huanghe!
+
 #### 1-4HTTP调用
   HTTP调用方式可以用于本机调试，需开启Java8 -parameters javac选项。
   
@@ -210,7 +211,7 @@
     
 ### 5-1例子-踢皮球
 
-    发球员向球员踢铅球，球员不太想接球，将球踢给别的球员；尝试若干次，直到接球或抛异常。
+    发球员向球员踢铅球，球员不太想接球，将球踢给别的球员；尝试若干次，直到接球或抛异常。(For Fun)
     
   Feign:
     
@@ -224,9 +225,11 @@
 	    TimeUnit.SECONDS.sleep(1);
         } catch (InterruptedException e) {
         }
+	// 1/20 几率调用成功
         if (new Random().nextInt(20) == 0) {
             return true;
         }
+	// 判断重定向次数
         InvocationContext<Boolean> context = InvocationContext.getContext();
         int times = context.redirectTimes();
         if (times >= 10) {
