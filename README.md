@@ -227,11 +227,11 @@
 	    TimeUnit.SECONDS.sleep(1);
         } catch (InterruptedException e) {
         }
-	// 1/20 几率调用成功
+        // 1/20 几率调用成功
         if (new Random().nextInt(20) == 0) {
             return true;
         }
-	// 判断重定向次数
+        // 判断重定向次数
         InvocationContext<Boolean> context = InvocationContext.getContext();
         int times = context.redirectTimes();
         if (times >= 10) {
