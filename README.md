@@ -1,5 +1,5 @@
 # eastwind
-    eastwind是一个有趣的SOA框架(半成品，供学习交流)，基于netty实现，包含二进制/HTTP RPC、EventBus、多种负载均衡、重定向、自动发现功能。
+    eastwind是一个有趣的SOA框架(半成品，供学习交流)，基于netty，包含二进制/HTTP RPC、EventBus、多种负载均衡、重定向、自动发现功能。
     分布式Map、流控/灰度发布、自定义路由等高级功能尚在规划中。
     以下所有代码都在test package下。
 
