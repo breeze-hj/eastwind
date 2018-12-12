@@ -272,11 +272,10 @@
  
      假设某服务有a、b、c、d四个节点，选举名称最小的节点即a为leader。选举规则：
      1、每个节点尽可能多地连接其他节点
-     2、每个节点有1次投票机会
-     3、candidate冲突时，低优先级让位，并通知follower转投高优先级candidate(消除分歧)
-     4、follower投票/转投时，广播所有存在连接的节点
-     5、follower收到其他节点投票广播消息时，假如投票目标不是己方candidate，通知己方candidate(有分歧)
-     6、整个quorum消除分歧后，产生leader
+     2、每个follower有1次投票机会，投票/转投时，广播所有相邻节点
+     3、follower收到其他节点投票广播消息时，假如投票目标不是己方candidate，通知己方candidate(有分歧)
+     4、candidate冲突时，低优先级让位，并通知follower转投高优先级candidate(消除分歧)
+     5、整个quorum消除分歧后，产生leader
      
  ##### 情况1
  
