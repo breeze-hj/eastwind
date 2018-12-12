@@ -23,6 +23,7 @@ public class OutputChannelStateListener extends TcpChannelStateListener<OutputCh
 	public void onActive(OutputChannel channel) {
 		LOGGER.debug("channel active: {}", channel);
 		channel.resetRetrys();
+		channel.setOpening(false);
 		Shake shake = bootstrapService.shakeBuilder().build(true);
 		channel.send(shake);
 	}
@@ -38,6 +39,7 @@ public class OutputChannelStateListener extends TcpChannelStateListener<OutputCh
 		if (!service.isOffline()) {
 			service.checkOffline();
 		}
+		channel.setOpening(false);
 		if (!service.isShutdown()) {
 			bootstrapService.getChannelRetryer().retry(channel);
 		}

@@ -34,7 +34,7 @@ public class InputChannel extends TcpChannel {
 	}
 
 	@Override
-	protected Object applyExt(Apply<Object> apply, Object ext, TransferContext transferContext) {
-		return apply.applyFromInputChannel(this, ext, transferContext);
+	protected Object applyExt(Apply<Object> apply, Object ext, ExchangePair exchangePair) {
+		return apply.applyFromInputChannel(this, ext, exchangePair);
 	}
 }

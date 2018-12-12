@@ -2,24 +2,34 @@ package eastwind.service;
 
 import java.net.InetSocketAddress;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 import eastwind.Application;
+import eastwind.channel.ChannelState;
 import eastwind.channel.OutputChannel;
 import eastwind.channel.TcpChannel;
+import eastwind.channel.TransferBuffer;
+import eastwind.model.ElectionState;
 import eastwind.rmi.RMDAssign;
 
 public class ChannelService extends Service {
 
 	private long lastSentTime;
 	private long lastRecvTime;
+	private boolean shaked;
 	private ChannelGroup channelGroup = new ChannelGroup();
 	private Map<Long, ExchangeContext> exchanging = new HashMap<>();
 	private Map<Long, ProcessContext> processing = new HashMap<>();
+	private TransferBuffer transferBuffer = new TransferBuffer("#");
 	private RMDAssign RMDAssign = new RMDAssign();
-	private CompletableFuture<ChannelService> connect1st = new CompletableFuture<>();
+	private ElectionState electionState;
+	private List<InetSocketAddress> others;
 	private Application application = new ApplicationAdapter(this);
+	private CompletableFuture<ChannelService> connect1st = new CompletableFuture<>();
 
 	public ChannelService(String uuid, InetSocketAddress address, String group, String version) {
 		super.uuid = uuid;
@@ -43,18 +53,43 @@ public class ChannelService extends Service {
 		}
 	}
 
-	public CompletableFuture<ExchangeContext> exchange(Object message) {
+	public synchronized CompletableFuture<ExchangeContext> exchange(Object message) {
 		ExchangeContext exchangeContext = new ExchangeContext();
 		exchangeContext.setService(this);
 		exchangeContext.setSent(message);
 		OutputChannel channel = channelGroup.getOne();
 		exchangeContext.setChannel(channel);
 		CompletableFuture<ExchangeContext> cf = new CompletableFuture<ExchangeContext>();
-		Long id = channel.send(message);
-		exchangeContext.setId(id);
 		exchangeContext.setCf(cf);
-		exchanging.put(id, exchangeContext);
+		if (channel.getState() == ChannelState.SHAKED) {
+			Long id = channel.send(message);
+			exchangeContext.setId(id);
+			exchanging.put(id, exchangeContext);
+		} else {
+			ForkJoinPool.commonPool().execute(() -> {
+				waitForReady(channel);
+				Long id = channel.send(message);
+				exchangeContext.setId(id);
+				exchanging.put(id, exchangeContext);
+			});
+		}
 		return cf;
+	}
+
+	// TODO improve
+	private void waitForReady(OutputChannel channel) {
+		for (int i = 0; i < 100; i++) {
+			if (channel.getState() == ChannelState.SHAKED) {
+				break;
+			} else {
+				try {
+					TimeUnit.MILLISECONDS.sleep(2);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	public ExchangeContext removeExchange(Long id) {
@@ -64,12 +99,31 @@ public class ChannelService extends Service {
 	public void addProcess(ProcessContext processContext) {
 		processing.put(processContext.getId(), processContext);
 	}
-	
+
 	public ProcessContext removeProcess(Long id) {
 		return processing.remove(id);
 	}
-	
-	public boolean isConnecting() {
+
+	public void transfer(Object object) {
+		transferBuffer.add(object);
+		tryTransfer(transferBuffer);
+	}
+
+	public void transfer(List<Object> objects) {
+		for (Object obj : objects) {
+			transferBuffer.add(obj);
+		}
+		tryTransfer(transferBuffer);
+	}
+
+	private void tryTransfer(TransferBuffer transferBuffer) {
+		if (!transferBuffer.isTransferring()) {
+			transferBuffer.setTransferring(true);
+			channelGroup.getOne().transfer(transferBuffer);
+		}
+	}
+
+	public boolean isOpening() {
 		return channelGroup.getOutputChannels().size() > 0;
 	}
 
@@ -77,7 +131,14 @@ public class ChannelService extends Service {
 		return getState() == ServiceState.INITIAL;
 	}
 
+	public boolean isShaked() {
+		return shaked;
+	}
+
 	public void online() {
+		if (!shaked) {
+			shaked = true;
+		}
 		changeState(ServiceState.ONLINE, null);
 		if (!connect1st.isDone()) {
 			connect1st.complete(this);
@@ -103,7 +164,7 @@ public class ChannelService extends Service {
 	public boolean isOffline() {
 		return getState() == ServiceState.OFFLINE;
 	}
-	
+
 	public void setServiceStateListener(ServiceStateListener serviceStateListener) {
 		super.setStateListener(ServiceState.ONLINE, (c, r) -> serviceStateListener.online((ChannelService) c));
 		super.setStateListener(ServiceState.SUSPEND, (c, r) -> serviceStateListener.suspend((ChannelService) c));
@@ -138,8 +199,32 @@ public class ChannelService extends Service {
 		return application;
 	}
 
+	public TransferBuffer getTransferBuffer() {
+		return transferBuffer;
+	}
+
+	public ElectionState getElectionState() {
+		return electionState;
+	}
+
+	public void setElectionState(ElectionState electionState) {
+		this.electionState = electionState;
+	}
+
+	public List<OutputChannel> getOutputChannels() {
+		return channelGroup.getOutputChannels();
+	}
+
+	public List<InetSocketAddress> getOthers() {
+		return others;
+	}
+
+	public void setOthers(List<InetSocketAddress> others) {
+		this.others = others;
+	}
+
 	@Override
 	public String toString() {
-		return String.format("application[%s@%s(%s)]", group, address, uuid);
+		return String.format("remote[%s@%s]", group, address);
 	}
 }

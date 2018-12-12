@@ -4,6 +4,7 @@ import eastwind.codec.ChannelClassifyHandler;
 import eastwind.codec.IOExceptionHandler;
 import eastwind.codec.RecvHandler;
 import eastwind.codec.TcpObjectCodec;
+import eastwind.codec.TransferSegmentHandler;
 import eastwind.support.EWUtils;
 import eastwind.support.NamedThreadFactory;
 import io.netty.bootstrap.Bootstrap;
@@ -35,6 +36,7 @@ public class ChannelOpener {
 				ChannelPipeline pipeline = ch.pipeline();
 				pipeline.addLast(EWUtils.getSimpleName(IOExceptionHandler.class), handler);
 				pipeline.addLast(EWUtils.getSimpleName(TcpObjectCodec.class), new TcpObjectCodec());
+				pipeline.addLast(EWUtils.getSimpleName(TransferSegmentHandler.class), new TransferSegmentHandler());
 				pipeline.addLast(EWUtils.getSimpleName(RecvHandler.class), new RecvHandler());
 			}
 		};
@@ -62,6 +64,8 @@ public class ChannelOpener {
 	}
 
 	public void open(OutputChannel outputChannel) {
+		outputChannel.incrementOpenMod();
+		outputChannel.setOpening(true);
 		ChannelFuture channelFuture = bootstrap.connect(outputChannel.getRemoteAddress());
 		channelFuture.addListener((f) -> NettyChannelBinder.bind(channelFuture.channel(), outputChannel));
 		outputChannel.bind(channelFuture);

@@ -3,8 +3,10 @@ package eastwind.service;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ServiceMapper {
 
@@ -25,11 +27,11 @@ public class ServiceMapper {
 		return address2Services.get(address);
 	}
 
-	public List<ChannelService> getAll() {
-		return new ArrayList<>(address2Services.values());
+	public Set<ChannelService> getAll() {
+		return new HashSet<>(address2Services.values());
 	}
 
-	public ChannelService stub(InetSocketAddress address) {
+	public synchronized ChannelService stub(InetSocketAddress address) {
 		ChannelService address2service = address2Services.get(address);
 		if (address2service != null) {
 			return address2service;

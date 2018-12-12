@@ -1,5 +1,6 @@
 package eastwind.model;
 
+import java.util.Iterator;
 import java.util.Map;
 
 import eastwind.support.MillisX10Sequencer;
@@ -56,6 +57,14 @@ public class TcpObjectBuilder {
 	public TcpObjectBuilder bodys(Object[] body) {
 		if (body != null) {
 			tcpObject.args = body.length;
+			tcpObject.body = body;
+		}
+		return this;
+	}
+	
+	public TcpObjectBuilder bodys(Iterator<?> body) {
+		if (body != null) {
+			tcpObject.args = -1;
 			tcpObject.body = body;
 		}
 		return this;

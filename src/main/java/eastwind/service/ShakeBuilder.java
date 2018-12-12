@@ -1,5 +1,6 @@
 package eastwind.service;
 
+import eastwind.model.ElectionState;
 import eastwind.model.Shake;
 
 public class ShakeBuilder extends BootstrapServiceable {
@@ -18,6 +19,9 @@ public class ShakeBuilder extends BootstrapServiceable {
 		if (properties) {
 			shake.properties = bootstrapService.propertys;
 		}
+		MasterServiceGroup serviceGroup = bootstrapService.getMasterServiceGroup();
+		ElectionState electionState = serviceGroup.getElectionState();
+		shake.electionState = electionState;
 		return shake;
 	}
 }

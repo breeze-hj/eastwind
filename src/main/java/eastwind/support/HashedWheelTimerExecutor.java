@@ -9,9 +9,10 @@ import io.netty.util.HashedWheelTimer;
  */
 public class HashedWheelTimerExecutor implements DelayedExecutor {
 
-    private HashedWheelTimer hashedWheelTimer = new HashedWheelTimer();
+    private HashedWheelTimer hashedWheelTimer;
 
-    public HashedWheelTimerExecutor() {
+    public HashedWheelTimerExecutor(String name) {
+    	hashedWheelTimer = new HashedWheelTimer(new NamedThreadFactory(name + "-hashed"));
         hashedWheelTimer.start();
     }
 

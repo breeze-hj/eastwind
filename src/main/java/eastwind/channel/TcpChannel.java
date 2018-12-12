@@ -1,5 +1,7 @@
 package eastwind.channel;
 
+import java.util.Iterator;
+
 import eastwind.apply.Apply;
 import eastwind.apply.Asynchronously;
 import eastwind.apply.ChannelApply;
@@ -7,6 +9,8 @@ import eastwind.model.Convert;
 import eastwind.model.TcpObject;
 import eastwind.model.TcpObjectBuilder;
 import eastwind.model.TcpObjectType;
+import eastwind.model.TransferAck;
+import eastwind.model.TransferSegment;
 import eastwind.service.ChannelService;
 import eastwind.service.ProcessContext;
 import io.netty.channel.Channel;
@@ -33,6 +37,7 @@ public abstract class TcpChannel extends ReceivableChannel<TcpObject> {
 
 	private void send0(TcpObject tcpObject) {
 		Channel nettyChannel = getNettyChannel();
+		//TODO improve
 		nettyChannel.writeAndFlush(tcpObject);
 		resetLastSentTime();
 		if (service != null) {
@@ -74,7 +79,7 @@ public abstract class TcpChannel extends ReceivableChannel<TcpObject> {
 				ProcessContext processContext = new ProcessContext(tcpObject.id, this);
 				this.service.addProcess(processContext);
 			}
-			Object result = applyExt(apply, ext, TransferContext.from(tcpObject));
+			Object result = applyExt(apply, ext, ExchangePair.from(tcpObject));
 			if (result == null) {
 				return null;
 			} else {
@@ -89,6 +94,34 @@ public abstract class TcpChannel extends ReceivableChannel<TcpObject> {
 		return null;
 	}
 
+	public void transfer(TransferBuffer transferBuffer) {
+		Iterator<TcpObject> it = new Iterator<TcpObject>() {
+			@Override
+			public boolean hasNext() {
+				return transferBuffer.hasNext();
+			}
+
+			@Override
+			public TcpObject next() {
+				TransferItem transferItem = transferBuffer.next();
+				Object msg = transferItem.msg;
+				@SuppressWarnings("unchecked")
+				Apply<Object> apply = (Apply<Object>) channelApply.getApply(msg.getClass());
+				TcpObject tcpObject = apply.getConvert().to(msg);
+				tcpObject.id = transferItem.id;
+				return tcpObject;
+			}
+		};
+		Channel nettyChannel = getNettyChannel();
+		TransferSegment transferSegment = new TransferSegment(it,
+				channelApply.getApply(TransferAck.class).getConvert());
+		nettyChannel.writeAndFlush(transferSegment);
+		resetLastSentTime();
+		if (service != null) {
+			service.resetLastSentTime();
+		}
+	}
+
 	@SuppressWarnings("unchecked")
 	public void respond(Long id, Object response) {
 		this.service.removeProcess(id);
@@ -97,8 +130,8 @@ public abstract class TcpChannel extends ReceivableChannel<TcpObject> {
 		tcpObject.respondTo = id;
 		send0(tcpObject);
 	}
-	
-	protected abstract Object applyExt(Apply<Object> apply, Object ext, TransferContext transferContext);
+
+	protected abstract Object applyExt(Apply<Object> apply, Object ext, ExchangePair exchangePair);
 
 	public void bindTo(ChannelService service) {
 		this.service = service;

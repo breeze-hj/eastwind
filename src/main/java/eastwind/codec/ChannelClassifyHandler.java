@@ -33,6 +33,7 @@ public class ChannelClassifyHandler extends ChannelInboundHandlerAdapter {
 
 	private ChildChannelFactory channelFactory;
 	private IOExceptionHandler ioExceptionHandler = new IOExceptionHandler();
+	private TransferSegmentHandler transferSegmentHandler = new TransferSegmentHandler();
 	
 	public ChannelClassifyHandler(ChildChannelFactory channelFactory) {
 		this.channelFactory = channelFactory;
@@ -49,6 +50,7 @@ public class ChannelClassifyHandler extends ChannelInboundHandlerAdapter {
 				NettyChannelBinder.bind(channel, inputChannel);
 				pipeline.addLast(EWUtils.getSimpleName(IOExceptionHandler.class), ioExceptionHandler);
 				pipeline.addLast(EWUtils.getSimpleName(TcpObjectCodec.class), new TcpObjectCodec());
+				pipeline.addLast(EWUtils.getSimpleName(TransferSegmentHandler.class), transferSegmentHandler);
 				pipeline.addLast(EWUtils.getSimpleName(RecvHandler.class), new RecvHandler());
 				pipeline.remove(this);
 				pipeline.fireChannelRead(msg);

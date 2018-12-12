@@ -9,8 +9,6 @@ import eastwind.apply.EventApply;
 import eastwind.apply.ShakeApply;
 import eastwind.http.ActuatorController;
 import eastwind.http.HttpRequestDispatcher;
-import eastwind.model.Event;
-import eastwind.model.Shake;
 import eastwind.rmi.HashPropertyRegistry;
 import eastwind.rmi.RMDRegistry;
 import eastwind.service.BootstrapService;
@@ -64,8 +62,8 @@ public class ChildChannelFactory extends BootstrapServiceable {
 
 	private ChannelApply defaultChannelApply() {
 		ChannelApply channelApply = new ChannelApply();
-		channelApply.register(Shake.class, shakeApply);
-		channelApply.register(Event.class, eventApply);
+		channelApply.register(shakeApply);
+		channelApply.register(eventApply);
 		return channelApply;
 	}
 }

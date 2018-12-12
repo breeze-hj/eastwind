@@ -2,7 +2,7 @@ package eastwind.apply;
 
 import eastwind.channel.InputChannel;
 import eastwind.channel.OutputChannel;
-import eastwind.channel.TransferContext;
+import eastwind.channel.ExchangePair;
 import eastwind.model.Convert;
 import eastwind.model.Response;
 import eastwind.model.TcpObject;
@@ -11,13 +11,13 @@ import eastwind.model.TcpObjectBuilder;
 public class ResponseApply implements Apply<Response> {
 
 	@Override
-	public Object applyFromInputChannel(InputChannel inputChannel, Response t,  TransferContext transferContext) {
+	public Object applyFromInputChannel(InputChannel inputChannel, Response t,  ExchangePair exchangePair) {
 		return null;
 	}
 
 	@Override
-	public Object applyFromOutputChannel(OutputChannel outputChannel, Response t, TransferContext transferContext) {
-		completeExchange(outputChannel, t, transferContext.respondTo);
+	public Object applyFromOutputChannel(OutputChannel outputChannel, Response t, ExchangePair exchangePair) {
+		completeExchange(outputChannel, t, exchangePair.respondTo);
 		return null;
 	}
 

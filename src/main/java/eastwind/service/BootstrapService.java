@@ -15,11 +15,11 @@ import org.slf4j.LoggerFactory;
 
 import eastwind.EastWindApplication;
 import eastwind.EventConsumer;
+import eastwind.LocalPolicy;
 import eastwind.channel.ChannelOpener;
 import eastwind.channel.ChildChannelFactory;
 import eastwind.channel.MasterChannel;
 import eastwind.channel.MasterChannelStateListener;
-import eastwind.channel.OutputChannel;
 import eastwind.rmi.FeignClientBuilder;
 import eastwind.rmi.HashPropertyRegistry;
 import eastwind.rmi.RMDRegistry;
@@ -41,10 +41,13 @@ public class BootstrapService extends Service {
 	private HashPropertyRegistry hashPropertyRegistry = new HashPropertyRegistry();
 	private RMDRegistry rmdRegistry = new RMDRegistry(hashPropertyRegistry);
 	private EventBusManager eventBusManager = new EventBusManager();
-	private ServiceGroupTable serviceGroupTable = new ServiceGroupTable(new ServiceGroupFactory(ruleFactory));
 	private ChildChannelFactory childChannelFactory = new ChildChannelFactory(this);
+	private ServiceOpener serviceOpener;
+	private ServiceGroupTable serviceGroupTable;
+	private ElectionPolicy electionPolicy = new LocalPolicy();
+	private MasterServiceGroup masterServiceGroup;
 
-	private HashedWheelTimerExecutor hashedWheelTimerExecutor = new HashedWheelTimerExecutor();
+	private HashedWheelTimerExecutor hashedWheelTimerExecutor;
 	private ChannelRetryer channelRetryer;
 	private ExecutorService customerExecutor;
 
@@ -57,18 +60,24 @@ public class BootstrapService extends Service {
 		super.startTime = new Date();
 		super.address = address;
 
-		serviceGroupTable.get(group, version);
-
 		String threadPrefix = group + "@" + address.getPort();
 		channelOpener = new ChannelOpener(threadPrefix);
+		hashedWheelTimerExecutor = new HashedWheelTimerExecutor(threadPrefix);
 		channelRetryer = new ChannelRetryer(channelOpener, hashedWheelTimerExecutor);
+		serviceOpener = new ServiceOpener(address, channelOpener, childChannelFactory);
+		serviceGroupTable = new ServiceGroupTable(new ServiceGroupFactory(ruleFactory, serviceOpener));
 
 		NamedThreadFactory factory = new NamedThreadFactory(threadPrefix);
 		customerExecutor = new ThreadPoolExecutor(10, 100, 10, TimeUnit.MINUTES, new LinkedBlockingQueue<>(), factory);
+		
+		masterServiceGroup = new MasterServiceGroup(this, hashedWheelTimerExecutor, electionPolicy, ruleFactory,
+				serviceOpener);
+		serviceGroupTable.put(masterServiceGroup);
 	}
 
 	public void start() {
 		LOGGER.info("starting {}...", this);
+
 		masterChannel = new MasterChannel(address, childChannelFactory);
 		MasterChannelStateListener openListener = new MasterChannelStateListener();
 		masterChannel.setChannelStateListener(openListener);
@@ -90,34 +99,25 @@ public class BootstrapService extends Service {
 		}
 	}
 
+	public boolean isMySelf(String uuid) {
+		return this.uuid.equals(uuid);
+	}
+	
+	public boolean isTeamate(String group, String version) {
+		return this.group.equals(group) && this.version.equals(version);
+	}
+
 	public ServiceGroup getServiceGroup(String group, String version) {
 		return serviceGroupTable.get(group, version);
 	}
 
-	public ServiceGroup getMyServiceGroup() {
-		return serviceGroupTable.get(group, version);
+	public MasterServiceGroup getMasterServiceGroup() {
+		return masterServiceGroup;
 	}
 
 	public void interactWith(String group, String version, List<InetSocketAddress> addresses) {
 		ServiceGroup serviceGroup = serviceGroupTable.get(group, version);
-		for (InetSocketAddress add : addresses) {
-			if (!add.equals(address)) {
-				interact(serviceGroup, add);
-			}
-		}
-	}
-
-	private void interact(ServiceGroup serviceGroup, InetSocketAddress address) {
-		if (serviceGroup.isInteracting(address)) {
-			return;
-		}
-		String group = serviceGroup.getGroup();
-		String version = serviceGroup.getVersion();
-		OutputChannel channel = childChannelFactory.newOutputChannel(group, version, address);
-		ChannelService service = serviceGroup.stub(address);
-		service.addChannel(channel);
-		channel.bindTo(service);
-		channelOpener.open(channel);
+		serviceGroup.open(addresses);
 	}
 
 	public ShakeBuilder shakeBuilder() {
@@ -138,7 +138,7 @@ public class BootstrapService extends Service {
 		if (eventBus != null) {
 			return eventBus;
 		}
-		eventBus = new DefaultEventBus<>(name, eventConsumer, getMyServiceGroup());
+		eventBus = new DefaultEventBus<>(name, eventConsumer, getMasterServiceGroup());
 		eventBusManager.register(eventBus);
 		return eventBus;
 	}
@@ -153,6 +153,10 @@ public class BootstrapService extends Service {
 
 	public EventBusManager getEventBusManager() {
 		return eventBusManager;
+	}
+
+	public ChannelOpener getChannelOpener() {
+		return channelOpener;
 	}
 
 	public ChannelRetryer getChannelRetryer() {
@@ -182,9 +186,17 @@ public class BootstrapService extends Service {
 		return customerExecutor;
 	}
 
+	public ElectionPolicy getElectionPolicy() {
+		return electionPolicy;
+	}
+
+	public void setElectionPolicy(ElectionPolicy electionPolicy) {
+		this.electionPolicy = electionPolicy;
+	}
+
 	@Override
 	public String toString() {
-		return String.format("application[%s@%s (%s)]", group, address, uuid);
+		return String.format("master[%s@%s (%s)]", group, address, uuid);
 	}
 
 }

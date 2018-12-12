@@ -1,5 +1,6 @@
 package eastwind.codec;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +22,8 @@ public class TcpObjectCodec extends ByteToMessageCodec<TcpObject> {
 
 	private static Logger LOGGER = LoggerFactory.getLogger(TcpObjectCodec.class);
 
+	private static final int MAX_WINDOW_SIZE = 7 * 1024;
+
 	public static final byte[] MAGIC = new byte[6];
 	static {
 		MAGIC[0] = 0x00;
@@ -34,26 +37,13 @@ public class TcpObjectCodec extends ByteToMessageCodec<TcpObject> {
 
 	@Override
 	protected void encode(ChannelHandlerContext ctx, TcpObject msg, ByteBuf out) throws Exception {
-		LOGGER.debug("-->{}:{}",ctx.channel().remoteAddress(), msg);
+		LOGGER.debug("-->{}:{}", ctx.channel().remoteAddress(), msg);
+		
 		Kryo kryo = KRYO.get();
 		Output output = OUTPUT.get();
-		out.writeBytes(MAGIC);
-
-		out.writeMedium(0);
-		int i = out.writerIndex();
-		out.writeShort(0);
-		output.setOutputStream(new ByteBufOutputStream(out));
-		kryo.writeClassAndObject(output, msg);
-		output.flush();
-		out.setShort(i, out.writerIndex() - i);
 
 		if (msg.hasHeader) {
-			i = out.writerIndex();
-			out.writeMedium(0);
-			output.setOutputStream(new ByteBufOutputStream(out));
-			kryo.writeClassAndObject(output, msg.header);
-			output.flush();
-			out.setMedium(i, out.writerIndex() - i);
+			writeObject(out, kryo, output, msg.header);
 		}
 
 		if (msg.args > 0) {
@@ -64,16 +54,40 @@ public class TcpObjectCodec extends ByteToMessageCodec<TcpObject> {
 				data = (Object[]) msg.body;
 			}
 			for (int j = 0; j < msg.args; j++) {
-				i = out.writerIndex();
-				out.writeMedium(0);
-				output.setOutputStream(new ByteBufOutputStream(out));
-				kryo.writeClassAndObject(output, data[j]);
-				output.flush();
-				out.setMedium(i, out.writerIndex() - i);
+				writeObject(out, kryo, output, data[j]);
 			}
+		} else if (msg.args == -1) {
+			Iterator<?> it = (Iterator<?>) msg.body;
+			int i = 0;
+			for (; it.hasNext() && (out.readableBytes() < MAX_WINDOW_SIZE || i == 0); i++) {
+				writeObject(out, kryo, output, it.next());
+			}
+			msg.args = i;
 		}
-		out.setMedium(MAGIC.length, out.readableBytes() - MAGIC.length);
+
+		ByteBuf line = ctx.alloc().buffer();
+		line.writeBytes(MAGIC);
+		line.writeMedium(0);
+		int i = line.writerIndex();
+		line.writeShort(0);
+		output.setOutputStream(new ByteBufOutputStream(line));
+		kryo.writeClassAndObject(output, msg);
+		output.flush();
+		line.setShort(i, line.writerIndex() - i);
+		line.setMedium(MAGIC.length, line.readableBytes() - MAGIC.length + out.readableBytes());
+
 		output.clear();
+		msg.bytes = line.readableBytes() + out.readableBytes();
+		ctx.write(line);
+	}
+
+	private void writeObject(ByteBuf out, Kryo kryo, Output output, Object data) {
+		int i = out.writerIndex();
+		out.writeMedium(0);
+		output.setOutputStream(new ByteBufOutputStream(out));
+		kryo.writeClassAndObject(output, data);
+		output.flush();
+		out.setMedium(i, out.writerIndex() - i);
 	}
 
 	@Override
@@ -121,6 +135,7 @@ public class TcpObjectCodec extends ByteToMessageCodec<TcpObject> {
 			}
 		}
 		LOGGER.debug("{}-->:{}", ctx.channel().remoteAddress(), msg);
+		msg.bytes = len + MAGIC.length;
 		out.add(msg);
 	}
 }

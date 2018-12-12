@@ -41,8 +41,8 @@ public class RmiTemplateImpl implements RmiTemplate {
 
 	public <T> CompletableFuture<T> execute(String path, Map<Object, Object> properties, Object... args) {
 		LOGGER.info("invoke to {} at {}", group, path);
-		if (!serviceGroup.isAllBright()) {
-			CompletableFuture<Void> brightFuture = serviceGroup.waitForBright();
+		if (!serviceGroup.isAllReady()) {
+			CompletableFuture<Void> brightFuture = serviceGroup.waitForAll();
 			try {
 				brightFuture.get(1, TimeUnit.SECONDS);
 			} catch (InterruptedException | ExecutionException | TimeoutException e) {

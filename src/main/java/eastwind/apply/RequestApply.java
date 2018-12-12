@@ -12,7 +12,7 @@ import eastwind.EastWindApplication;
 import eastwind.InvocationContextLocal;
 import eastwind.channel.InputChannel;
 import eastwind.channel.OutputChannel;
-import eastwind.channel.TransferContext;
+import eastwind.channel.ExchangePair;
 import eastwind.model.Convert;
 import eastwind.model.Redirect;
 import eastwind.model.Request;
@@ -39,13 +39,13 @@ public class RequestApply implements Apply<Request> {
 	}
 
 	@Override
-	public Object applyFromInputChannel(InputChannel inputChannel, Request request, TransferContext transferContext) {
+	public Object applyFromInputChannel(InputChannel inputChannel, Request request, ExchangePair exchangePair) {
 		LOGGER.info("apply request at {} from {}.", request.alias, inputChannel.getService());
 		RmiEntity rmiEntity = rmdRegister.getEntity(request.alias);
 		Method method = rmiEntity.getMethod();
 		Object target = rmiEntity.getTarget();
 		Application remote = inputChannel.getService().getApplication();
-		DefaultInvocationContext<?> context = new DefaultInvocationContext<>(transferContext.id, eastWindApplication,
+		DefaultInvocationContext<?> context = new DefaultInvocationContext<>(exchangePair.id, eastWindApplication,
 				remote, method, request.properties, request.redirects);
 
 		customerExecutor.execute(() -> {
@@ -64,23 +64,23 @@ public class RequestApply implements Apply<Request> {
 				th = e;
 			}
 			if (th != null) {
-				respondExceptionally(inputChannel, transferContext, th);
+				respondExceptionally(inputChannel, exchangePair, th);
 			} else {
 				if (context.isAsync()) {
 					context.getCf().thenAccept(t -> {
 						if (context.isCompleted()) {
-							respondNormally(inputChannel, transferContext, context.getResult());
+							respondNormally(inputChannel, exchangePair, context.getResult());
 						} else if (context.getCause() != null) {
-							respondExceptionally(inputChannel, transferContext, context.getCause());
+							respondExceptionally(inputChannel, exchangePair, context.getCause());
 						} else if (context.getRedirectTo() != null) {
-							respondRedirected(inputChannel, transferContext, context.getRedirectTo());
+							respondRedirected(inputChannel, exchangePair, context.getRedirectTo());
 						}
 					});
 				} else {
 					if (context.getRedirectTo() != null) {
-						respondRedirected(inputChannel, transferContext, context.getRedirectTo());
+						respondRedirected(inputChannel, exchangePair, context.getRedirectTo());
 					} else {
-						respondNormally(inputChannel, transferContext, result);
+						respondNormally(inputChannel, exchangePair, result);
 					}
 				}
 			}
@@ -89,30 +89,30 @@ public class RequestApply implements Apply<Request> {
 		return null;
 	}
 
-	private void respondNormally(InputChannel inputChannel, TransferContext transferContext, Object result) {
+	private void respondNormally(InputChannel inputChannel, ExchangePair exchangePair, Object result) {
 		Response response = new Response();
 		response.state = Response.SUCCESS;
 		response.value = result;
-		inputChannel.respond(transferContext.id, response);
+		inputChannel.respond(exchangePair.id, response);
 	}
 
-	private void respondExceptionally(InputChannel inputChannel, TransferContext transferContext, Throwable th) {
+	private void respondExceptionally(InputChannel inputChannel, ExchangePair exchangePair, Throwable th) {
 		Response response = new Response();
 		response.state = Response.FAILED;
 		ThrowableInfo info = new ThrowableInfo();
 		info.th = th.getClass().getName();
 		info.message = th.getMessage();
 		response.value = info;
-		inputChannel.respond(transferContext.id, response);
+		inputChannel.respond(exchangePair.id, response);
 	}
 
-	private void respondRedirected(InputChannel inputChannel, TransferContext transferContext,
+	private void respondRedirected(InputChannel inputChannel, ExchangePair exchangePair,
 			Application application) {
-		inputChannel.respond(transferContext.id, Redirect.to(application));
+		inputChannel.respond(exchangePair.id, Redirect.to(application));
 	}
 
 	@Override
-	public Object applyFromOutputChannel(OutputChannel outputChannel, Request t, TransferContext transferContext) {
+	public Object applyFromOutputChannel(OutputChannel outputChannel, Request t, ExchangePair exchangePair) {
 		return null;
 	}
 

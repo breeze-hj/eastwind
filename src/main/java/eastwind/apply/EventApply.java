@@ -5,7 +5,7 @@ import eastwind.EastWindApplication;
 import eastwind.EventBus;
 import eastwind.channel.InputChannel;
 import eastwind.channel.OutputChannel;
-import eastwind.channel.TransferContext;
+import eastwind.channel.ExchangePair;
 import eastwind.model.Convert;
 import eastwind.model.Event;
 import eastwind.model.TcpObject;
@@ -25,7 +25,7 @@ public class EventApply implements Apply<Event> {
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
-	public Object applyFromInputChannel(InputChannel inputChannel, Event t, TransferContext transferContext) {
+	public Object applyFromInputChannel(InputChannel inputChannel, Event t, ExchangePair exchangePair) {
 		EventBus<Object> eventBus = eventBusManager.get(t.name);
 		Application remote = inputChannel.getService().getApplication();
 		((DefaultEventBus) eventBus).getConsumer().accept(t.data, master, remote);
@@ -33,7 +33,7 @@ public class EventApply implements Apply<Event> {
 	}
 
 	@Override
-	public Object applyFromOutputChannel(OutputChannel outputChannel, Event t, TransferContext transferContext) {
+	public Object applyFromOutputChannel(OutputChannel outputChannel, Event t, ExchangePair exchangePair) {
 		return null;
 	}
 

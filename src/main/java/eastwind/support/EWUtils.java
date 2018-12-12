@@ -1,11 +1,27 @@
 package eastwind.support;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+
 import org.apache.commons.lang3.StringUtils;
 
 import eastwind.annotation.Feign;
 import eastwind.model.RMD;
 
 public class EWUtils {
+
+	public static Class<?> getInterfaceTypeArgument0(Class<?> cls, Class<?> inter) {
+		Type[] types = cls.getGenericInterfaces();
+		for (Type t : types) {
+			if (t instanceof ParameterizedType) {
+				ParameterizedType pt = (ParameterizedType) t;
+				if (pt.getRawType().equals(inter)) {
+					return (Class<?>) pt.getActualTypeArguments()[0];
+				}
+			}
+		}
+		return null;
+	}
 
 	public static boolean isAssignableTo(RMD local, RMD remote) {
 		if (local.argTypes.length != remote.argTypes.length) {

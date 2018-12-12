@@ -9,7 +9,9 @@ import eastwind.apply.Apply;
  */
 public class OutputChannel extends TcpChannel implements AsyncOpenChannel {
 
+	private int openMod;
 	private int retrys;
+	private boolean opening;
 	private InetSocketAddress remoteAddress;
 
 	public OutputChannel(String group, String version, InetSocketAddress remoteAddress) {
@@ -36,6 +38,14 @@ public class OutputChannel extends TcpChannel implements AsyncOpenChannel {
 		}
 	}
 
+	public int getOpenMod() {
+		return openMod;
+	}
+	
+	public void incrementOpenMod() {
+		this.openMod++;
+	}
+	
 	public int getRetrys() {
 		return retrys;
 	}
@@ -57,9 +67,17 @@ public class OutputChannel extends TcpChannel implements AsyncOpenChannel {
 		return "OutputChannel [group=" + group + ", version=" + version + ", channel=" + channel + "]";
 	}
 
+	public boolean isOpening() {
+		return opening;
+	}
+
+	public void setOpening(boolean opening) {
+		this.opening = opening;
+	}
+
 	@Override
-	protected Object applyExt(Apply<Object> apply, Object ext, TransferContext transferContext) {
-		return apply.applyFromOutputChannel(this, ext, transferContext);
+	protected Object applyExt(Apply<Object> apply, Object ext, ExchangePair exchangePair) {
+		return apply.applyFromOutputChannel(this, ext, exchangePair);
 	}
 
 }

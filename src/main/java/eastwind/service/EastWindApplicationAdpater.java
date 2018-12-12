@@ -1,6 +1,7 @@
 package eastwind.service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -35,12 +36,12 @@ public class EastWindApplicationAdpater extends BaseApplication implements EastW
 
 	@Override
 	public CompletableFuture<Void> waitForOthers() {
-		return bootstrapService.getMyServiceGroup().waitForBright();
+		return bootstrapService.getMasterServiceGroup().waitForElectAndAll();
 	}
 
 	@Override
 	public List<Application> getOthers(boolean online) {
-		List<ChannelService> services = bootstrapService.getMyServiceGroup().getAll();
+		Set<ChannelService> services = bootstrapService.getMasterServiceGroup().getAll();
 		return services.stream().filter(s -> !online || s.isOnline()).map(s -> s.getApplication()).collect(Collectors.toList());
 	}
 
